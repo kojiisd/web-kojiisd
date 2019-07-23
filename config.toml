@@ -1,6 +1,6 @@
-baseURL = "http://example.org/"
+baseURL = "https://kojiisd.tk/"
 languageCode = "en-us"
-title = "My New Hugo Site"
+title = "Portfolio of kojiisd"
 
 [params]
 	customCSS = ["/css/custom.css"]
