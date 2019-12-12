@@ -1,7 +1,7 @@
 baseURL = "https://web.kojiisd.tk"
 languageCode = "en-us"
 title = "Portfolio of kojiisd"
-googleAnalytics = "UA-154442454-1"
+googleAnalytics = "UA-37579224-3"
 
 [params]
 	customCSS = ["/css/custom.css"]
