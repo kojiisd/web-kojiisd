@@ -1,0 +1,33 @@
+---
+import { getCollection, render } from "astro:content";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+
+export async function getStaticPaths() {
+  const works = await getCollection("works", ({ data }) => !data.draft);
+  return works.map((work) => ({ params: { slug: work.id }, props: { work } }));
+}
+
+const { work } = Astro.props;
+const { Content } = await render(work);
+---
+
+<BaseLayout title={`${work.data.title} | kojiisd`} description={work.data.summary}>
+  <a href="/#works" class="text-sm text-sky-600 hover:underline dark:text-sky-400">← Works</a>
+  <article class="mt-6">
+    <p class="text-sm text-slate-500">{work.data.date.toLocaleDateString("ja-JP", { timeZone: "Asia/Tokyo" })}</p>
+    <h1 class="mt-2 text-3xl font-bold tracking-tight">{work.data.title}</h1>
+    <ul class="mt-3 flex flex-wrap gap-2">
+      {work.data.tags.map((tag) => <li class="text-sm text-sky-600 dark:text-sky-400">#{tag}</li>)}
+    </ul>
+    {
+      work.data.url && (
+        <a href={work.data.url} target="_blank" rel="noopener noreferrer" class="mt-3 inline-block text-sm underline">
+          {work.data.url}
+        </a>
+      )
+    }
+    <div class="prose prose-slate dark:prose-invert mt-8 max-w-none">
+      <Content />
+    </div>
+  </article>
+</BaseLayout>

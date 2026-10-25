@@ -1,0 +1,68 @@
+---
+import "../styles/global.css";
+
+interface Props {
+  title: string;
+  description: string;
+}
+
+const { title, description } = Astro.props;
+const gaId = import.meta.env.PUBLIC_GA_ID;
+const canonical = new URL(Astro.url.pathname, Astro.site);
+---
+
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+    <link rel="icon" href="/favicon.ico" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:site" content="@kojiisd" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Noto+Sans+JP:wght@400;700&display=swap"
+    />
+    {
+      gaId && (
+        <>
+          <script is:inline async src={`https://www.googletagmanager.com/gtag/js?id=${gaId}`} />
+          <script is:inline define:vars={{ gaId }}>
+            window.dataLayer = window.dataLayer || [];
+            function gtag() {
+              dataLayer.push(arguments);
+            }
+            gtag("js", new Date());
+            gtag("config", gaId);
+          </script>
+        </>
+      )
+    }
+  </head>
+  <body class="flex min-h-screen flex-col font-sans">
+    <header class="mx-auto flex max-w-4xl items-center gap-3 px-4 py-6">
+      <a href="/" class="flex items-center gap-3 font-semibold">
+        <img src="/images/logo_kojiisd_small.png" alt="" width="32" height="32" class="dark:invert" />
+        kojiisd
+      </a>
+    </header>
+    <main class="mx-auto w-full max-w-4xl flex-1 px-4 pb-16">
+      <slot />
+    </main>
+    <footer class="border-t border-slate-200 py-8 text-center text-sm text-slate-500 dark:border-slate-800">
+      © {new Date().getFullYear()} kojiisd ·{" "}
+      <a href="https://github.com/kojiisd/web-kojiisd" class="underline hover:text-slate-800 dark:hover:text-slate-200">
+        Source on GitHub
+      </a>
+    </footer>
+  </body>
+</html>

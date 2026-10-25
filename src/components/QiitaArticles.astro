@@ -1,0 +1,32 @@
+---
+import type { QiitaArticle } from "../lib/qiita";
+import Section from "./Section.astro";
+
+interface Props {
+  articles: QiitaArticle[];
+}
+
+const { articles } = Astro.props;
+const formatDate = (date: Date) => date.toLocaleDateString("ja-JP", { timeZone: "Asia/Tokyo" });
+---
+
+<Section id="articles" title="Latest Articles on Qiita">
+  <ul class="divide-y divide-slate-200 dark:divide-slate-800">
+    {
+      articles.map((article) => (
+        <li>
+          <a href={article.url} target="_blank" rel="noopener noreferrer" class="group block py-4">
+            <p class="text-xs text-slate-500">
+              {formatDate(article.createdAt)} · ♥ {article.likes}
+            </p>
+            <h3 class="mt-1 font-semibold group-hover:text-sky-600 dark:group-hover:text-sky-400">{article.title}</h3>
+            <p class="mt-1 text-xs text-slate-500">{article.tags.map((tag) => `#${tag}`).join(" ")}</p>
+          </a>
+        </li>
+      ))
+    }
+  </ul>
+  <a href="https://qiita.com/kojiisd" target="_blank" rel="noopener noreferrer" class="mt-4 inline-block text-sm text-sky-600 hover:underline dark:text-sky-400">
+    すべての記事を見る →
+  </a>
+</Section>
