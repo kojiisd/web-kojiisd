@@ -1,0 +1,33 @@
+---
+import type { CollectionEntry } from "astro:content";
+import { render } from "astro:content";
+import Section from "./Section.astro";
+
+interface Props {
+  career: CollectionEntry<"career">[];
+}
+
+const { career } = Astro.props;
+const entries = await Promise.all(career.map(async (entry) => ({ entry, ...(await render(entry)) })));
+const formatMonth = (date: Date) => `${date.getFullYear()}.${String(date.getMonth() + 1).padStart(2, "0")}`;
+---
+
+<Section id="career" title="Career">
+  <ol class="space-y-8 border-l border-slate-200 pl-6 dark:border-slate-800">
+    {
+      entries.map(({ entry, Content }) => (
+        <li>
+          <p class="text-xs text-slate-500">
+            {formatMonth(entry.data.start)} – {entry.data.end ? formatMonth(entry.data.end) : "現在"}
+          </p>
+          <h3 class="mt-1 font-semibold">
+            {entry.data.role} <span class="font-normal text-slate-500">@ {entry.data.organization}</span>
+          </h3>
+          <div class="prose prose-sm prose-slate dark:prose-invert mt-2 max-w-none">
+            <Content />
+          </div>
+        </li>
+      ))
+    }
+  </ol>
+</Section>

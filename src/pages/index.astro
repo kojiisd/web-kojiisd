@@ -1,0 +1,29 @@
+---
+import { getCollection, getEntry } from "astro:content";
+import BaseLayout from "../layouts/BaseLayout.astro";
+import Career from "../components/Career.astro";
+import Certifications from "../components/Certifications.astro";
+import Hero from "../components/Hero.astro";
+import QiitaArticles from "../components/QiitaArticles.astro";
+import Works from "../components/Works.astro";
+import { fetchQiitaArticles } from "../lib/qiita";
+
+const profile = await getEntry("profile", "profile");
+if (!profile) throw new Error("src/content/profile.md が見つかりません");
+
+const works = (await getCollection("works", ({ data }) => !data.draft)).sort(
+  (a, b) => b.data.date.valueOf() - a.data.date.valueOf(),
+);
+const career = (await getCollection("career", ({ data }) => !data.draft)).sort(
+  (a, b) => b.data.start.valueOf() - a.data.start.valueOf(),
+);
+const articles = await fetchQiitaArticles("kojiisd");
+---
+
+<BaseLayout title={`${profile.data.name} | Portfolio`} description={profile.data.title}>
+  <Hero profile={profile} />
+  <Certifications certifications={profile.data.certifications} skills={profile.data.skills} />
+  {works.length > 0 && <Works works={works} />}
+  {career.length > 0 && <Career career={career} />}
+  {articles.length > 0 && <QiitaArticles articles={articles} />}
+</BaseLayout>

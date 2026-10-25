@@ -33,20 +33,25 @@ Astro は Markdown を標準でサポートしています。`src/content.config
 
 ```ts
 // src/content.config.ts
-import { defineCollection, z } from "astro:content";
+import { defineCollection } from "astro:content";
 import { glob } from "astro/loaders";
+import { z } from "astro/zod";
 
 const works = defineCollection({
   loader: glob({ pattern: "**/*.md", base: "./src/content/works" }),
   schema: z.object({
     title: z.string(),
+    summary: z.string(),
     date: z.coerce.date(),
     tags: z.array(z.string()).default([]),
+    draft: z.boolean().default(false),
   }),
 });
 
 export const collections = { works };
 ```
+
+（実際の定義は `profile` / `works` / `career` の3コレクションです）
 
 front matter に `title` が無い、`date` の書式が違う、といった誤りは **ビルドエラー** になるため、壊れたページが公開されることはありません。
 
@@ -62,7 +67,7 @@ import { getCollection, render } from "astro:content";
 import BaseLayout from "../../layouts/BaseLayout.astro";
 
 export async function getStaticPaths() {
-  const works = await getCollection("works");
+  const works = await getCollection("works", ({ data }) => !data.draft);
   return works.map((work) => ({ params: { slug: work.id }, props: { work } }));
 }
 
@@ -104,7 +109,8 @@ web-kojiisd/
 ├── astro.config.mjs          # サイトURL、Tailwind などの設定
 ├── amplify.yml               # Amplify Hosting のビルド設定
 ├── package.json
-├── .node-version
+├── .nvmrc                    # Node.js のバージョン（Amplify でも使用）
+├── .env.example              # 環境変数のサンプル
 ├── public/                   # そのまま配信されるファイル（favicon、画像）
 └── src/
     ├── content.config.ts     # コレクションと front matter の型定義
@@ -114,7 +120,7 @@ web-kojiisd/
     │   └── career/           #   経歴（1件 = 1ファイル）
     ├── lib/
     │   └── qiita.ts          # ビルド時に Qiita API から記事を取得
-    ├── components/           # セクション単位の部品
+    ├── components/           # セクション単位の部品（Hero, Works, Career, QiitaArticles など）
     ├── layouts/
     │   └── BaseLayout.astro  # <head>、OGP、Google Analytics
     ├── pages/                # ルーティング（ファイル名 = URL）
@@ -131,18 +137,23 @@ web-kojiisd/
 | やりたいこと | 編集するファイル |
 |---|---|
 | 自己紹介・肩書きを変える | `src/content/profile.md` |
-| 資格・リンクを追加する | `src/content/profile.md` の front matter |
+| 資格・スキル・リンクを追加する | `src/content/profile.md` の front matter |
 | 実績を追加する | `src/content/works/` に `.md` を追加 |
 | 経歴を追加する | `src/content/career/` に `.md` を追加 |
 | Qiita 記事一覧 | 編集不要（ビルド時に自動取得） |
+
+実績・経歴は `draft: true` の間は公開されません。書きかけは `draft: true` のまま push して構いません。
+公開済みの実績・経歴が1件もないセクションは表示されません。
 
 例：`src/content/works/genai-service.md`
 
 ```markdown
 ---
 title: 生成AIを組み込んだ〇〇サービス
+summary: 一覧に表示される1〜2行の説明
 date: 2025-04-01
 tags: [AWS, Bedrock, Serverless]
+draft: false
 ---
 
 ## 概要
@@ -151,12 +162,12 @@ tags: [AWS, Bedrock, Serverless]
 
 ## ローカル開発
 
-Node.js（バージョンは `.node-version` を参照）が必要です。
+Node.js（バージョンは `.nvmrc` を参照）が必要です。
 
 ```sh
 npm install
 npm run dev      # http://localhost:4321 で確認（保存すると即反映）
-npm run build    # dist/ に静的ファイルを出力
+npm run build    # 型チェック（astro check）後、dist/ に静的ファイルを出力
 npm run preview  # ビルド結果を確認
 ```
 
@@ -166,8 +177,11 @@ AWS Amplify Hosting がリポジトリと連携しており、`master` に push 
 
 | 設定 | 場所 | 内容 |
 |---|---|---|
-| `PUBLIC_GA_ID` | Amplify の環境変数 | Google Analytics 4 の測定ID（`G-...`） |
+| `PUBLIC_GA_ID` | Amplify の環境変数 | Google Analytics 4 の測定ID（`G-...`）。未設定ならタグを出力しない |
+| `QIITA_TOKEN` | Amplify の環境変数（任意） | Qiita API のアクセストークン。未認証だと 60回/時 の制限あり |
 | 定期ビルド | EventBridge Scheduler → Amplify の Webhook | Qiita の新着記事を毎日反映 |
+
+Qiita API の取得に失敗してもビルドは止まらず、記事一覧のセクションが非表示になるだけです。
 
 ## Hugo 版からの対応
 

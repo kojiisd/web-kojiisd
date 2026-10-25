@@ -1,0 +1,21 @@
+---
+import * as icons from "simple-icons";
+import type { SimpleIcon } from "simple-icons";
+
+interface Props {
+  slug: string;
+  class?: string;
+}
+
+const { slug, class: className } = Astro.props;
+const key = `si${slug.charAt(0).toUpperCase()}${slug.slice(1)}`;
+const icon = (icons as unknown as Record<string, SimpleIcon | undefined>)[key];
+---
+
+{
+  icon && (
+    <svg role="img" viewBox="0 0 24 24" aria-hidden="true" class={className} fill="currentColor">
+      <path d={icon.path} />
+    </svg>
+  )
+}

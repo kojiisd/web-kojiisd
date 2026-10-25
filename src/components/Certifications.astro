@@ -1,0 +1,23 @@
+---
+import Section from "./Section.astro";
+
+interface Props {
+  certifications: string[];
+  skills: string[];
+}
+
+const { certifications, skills } = Astro.props;
+---
+
+<Section id="skills" title="Skills & Certifications">
+  <ul class="flex flex-wrap gap-2">
+    {skills.map((skill) => <li class="rounded-md bg-slate-100 px-3 py-1 text-sm dark:bg-slate-800">{skill}</li>)}
+  </ul>
+  <ul class="mt-6 grid gap-3 sm:grid-cols-2">
+    {
+      certifications.map((cert) => (
+        <li class="rounded-lg border border-slate-200 p-4 text-sm font-semibold dark:border-slate-800">{cert}</li>
+      ))
+    }
+  </ul>
+</Section>
