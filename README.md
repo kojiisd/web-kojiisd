@@ -1,11 +1,12 @@
 # web-kojiisd
 
-[https://web.kojiisd.jp/](https://web.kojiisd.jp/) のソースコードです。
+[https://www.kojiisd.jp/](https://www.kojiisd.jp/) のソースコードです。
 kojiisd のポートフォリオサイトを、構造も含めてオープンにしています。
 
 - コンテンツはすべて **Markdown** で管理
 - **Astro** で静的HTMLにビルド
-- **AWS Amplify Hosting** で配信（`master` への push で自動デプロイ）
+- **S3 + CloudFront** で配信（インフラは `infra/` の **AWS CDK** で定義）
+- **GitHub Actions** でビルド・デプロイ（`master` への push と毎日の定期実行）
 
 ## 仕組み
 
@@ -24,7 +25,8 @@ flowchart LR
   css --> build
   qiita -- ビルド時に記事取得 --> build
   build["astro build"] --> dist["dist/<br/>（静的 HTML / CSS）"]
-  dist --> amplify["Amplify Hosting<br/>web.kojiisd.jp"]
+  dist -- GitHub Actions（OIDC） --> s3["S3"]
+  s3 --> cf["CloudFront<br/>www.kojiisd.jp"]
 ```
 
 ### 1. Markdown を読み込む（Content Collections）
@@ -107,9 +109,10 @@ Markdown から生成される HTML（`<h2>` や `<ul>`）にはクラスが付�
 ```
 web-kojiisd/
 ├── astro.config.mjs          # サイトURL、Tailwind などの設定
-├── amplify.yml               # Amplify Hosting のビルド設定
 ├── package.json
-├── .nvmrc                    # Node.js のバージョン（Amplify でも使用）
+├── .nvmrc                    # Node.js のバージョン（GitHub Actions でも使用）
+├── .github/workflows/        # ビルド・デプロイ（deploy.yml）、インフラのチェック（infra.yml）
+├── infra/                    # AWS CDK（S3、CloudFront、ACM、Route 53、デプロイ用 IAM ロール）
 ├── .env.example              # 環境変数のサンプル
 ├── public/                   # そのまま配信されるファイル（favicon、画像）
 └── src/
@@ -125,6 +128,7 @@ web-kojiisd/
     │   └── BaseLayout.astro  # <head>、OGP、Google Analytics
     ├── pages/                # ルーティング（ファイル名 = URL）
     │   ├── index.astro
+    │   ├── 404.astro
     │   └── works/[slug].astro
     └── styles/
         └── global.css
@@ -173,15 +177,42 @@ npm run preview  # ビルド結果を確認
 
 ## デプロイ
 
-AWS Amplify Hosting がリポジトリと連携しており、`master` に push すると `amplify.yml` に従ってビルド・公開されます。
+```mermaid
+flowchart LR
+  gh["GitHub Actions<br/>push / 毎日 06:17 JST / 手動"] -- OIDC --> role["IAM ロール"]
+  role --> s3["S3（非公開）"]
+  role --> inv["CloudFront<br/>キャッシュ削除"]
+  s3 -- OAC --> cf["CloudFront<br/>+ CloudFront Function"]
+  user["ブラウザ"] --> cf
+```
 
-| 設定 | 場所 | 内容 |
+`.github/workflows/deploy.yml` が `npm run build` の結果を S3 に同期し、CloudFront のキャッシュを削除します。
+AWS の認証には OIDC を使うため、アクセスキーを GitHub に保存していません。
+
+| ホスト | 挙動 |
+|---|---|
+| `www.kojiisd.jp` | 正規ホスト（サイト本体） |
+| `kojiisd.jp` | `www.kojiisd.jp` へ 301 リダイレクト |
+| `web.kojiisd.jp` | `www.kojiisd.jp` へ 301 リダイレクト（旧 URL） |
+
+リダイレクトとディレクトリ URL の解決（`/works/example/` → `index.html`）は、CloudFront Function（`infra/functions/viewer-request.js`）で行っています。
+
+### GitHub の設定
+
+| 名前 | 種類 | 内容 |
 |---|---|---|
-| `PUBLIC_GA_ID` | Amplify の環境変数 | Google Analytics 4 の測定ID（`G-...`）。未設定ならタグを出力しない |
-| `QIITA_TOKEN` | Amplify の環境変数（任意） | Qiita API のアクセストークン。未認証だと 60回/時 の制限あり |
-| 定期ビルド | EventBridge Scheduler → Amplify の Webhook | Qiita の新着記事を毎日反映 |
+| `AWS_DEPLOY_ROLE_ARN` | Variables | CDK の出力 `DeployRoleArn`。未設定の間はビルドのみ行い、デプロイしない |
+| `S3_BUCKET` | Variables | CDK の出力 `BucketName` |
+| `CLOUDFRONT_DISTRIBUTION_ID` | Variables | CDK の出力 `DistributionId` |
+| `PUBLIC_GA_ID` | Variables | Google Analytics 4 の測定ID（`G-...`）。未設定ならタグを出力しない |
+| `QIITA_TOKEN` | Secrets（任意） | Qiita API のアクセストークン。未認証だと 60回/時 の制限あり |
 
 Qiita API の取得に失敗してもビルドは止まらず、記事一覧のセクションが非表示になるだけです。
+なお、GitHub はリポジトリに 60 日間更新がないと定期実行を自動で無効化します。その場合は Actions の画面から再度有効化してください。
+
+### インフラ
+
+構築手順と、Amplify Hosting からの切り替え手順は [infra/README.md](infra/README.md) を参照してください。
 
 ## Hugo 版からの対応
 
