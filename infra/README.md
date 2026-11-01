@@ -29,7 +29,7 @@ infra/
 npm ci
 npm run build   # 型チェック
 npm test        # CloudFront Function のテスト
-npx cdk diff    # 変更差分の確認（AWS の認証情報が必要）
+npm run diff    # 変更差分の確認（AWS の認証情報が必要）
 ```
 
 ## 初回構築
@@ -42,22 +42,28 @@ AWS CloudShell（バージニア北部）か、管理者権限の認証情報が
    aws iam list-open-id-connect-providers
    ```
 
-   `token.actions.githubusercontent.com` が既にある場合は、以降の `cdk deploy` に `-c githubOidcProviderArn=<その ARN>` を付けてください（同じプロバイダーは 1 アカウントに 1 つしか作れません）。
+   `token.actions.githubusercontent.com` が既にある場合は、手順 3 を `npm run deploy -- -c githubOidcProviderArn=<その ARN>` で実行してください（同じプロバイダーは 1 アカウントに 1 つしか作れません）。
 
-2. **CDK のブートストラップ**（us-east-1 で未実施、または古い場合）
+2. **CDK のブートストラップ**
 
    ```sh
-   cd infra
+   git clone https://github.com/kojiisd/web-kojiisd.git
+   cd web-kojiisd/infra
    npm ci
-   npx cdk bootstrap aws://<アカウントID>/us-east-1
+   npm run bootstrap
    ```
+
+   このプロジェクトは専用の修飾子 `kojiweb`（スタック名 `CDKToolkitWebKojiisd`）でブートストラップします（`cdk.json` で設定）。
+   アカウントに過去の CDK ブートストラップ（既定の修飾子 `hnb659fds`）の残骸があっても衝突しません。
 
 3. **デプロイ**
 
    ```sh
-   npx cdk deploy
+   npm run diff     # 作成されるリソースを確認する（任意）
+   npm run deploy
    ```
 
+   承認の確認（y/n）は省略しています。CloudShell の接続が切れても止まらないよう、`nohup npm run deploy > ~/deploy.log 2>&1 &` のようにバックグラウンドで実行しても構いません。
    証明書の DNS 検証に数分かかります。この時点で `www.kojiisd.jp` と `kojiisd.jp` のレコードが作成されます。
    `kojiisd.jp` はエイリアスレコードなので、既存の MX（Zoho）や TXT には影響しません。
 
@@ -91,7 +97,7 @@ AWS CloudShell（バージニア北部）か、管理者権限の認証情報が
 3. `cdk.json` の `context` に `"attachWebDomain": true` を追加してデプロイする
 
    ```sh
-   npx cdk deploy
+   npm run deploy
    ```
 
 4. `https://web.kojiisd.jp/` が `https://www.kojiisd.jp/` へ転送されることを確認し、`cdk.json` の変更をコミットする
