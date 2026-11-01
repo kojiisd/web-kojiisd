@@ -16,5 +16,5 @@ new SiteStack(app, "WebKojiisdSite", {
   githubRepo: "kojiisd/web-kojiisd",
   githubBranch: "master",
   githubInfraEnvironment: "infra",
-  githubOidcProviderArn: app.node.tryGetContext("githubOidcProviderArn"),
+  useExistingGithubOidcProvider: [true, "true"].includes(app.node.tryGetContext("useExistingGithubOidcProvider")),
 });
