@@ -1,0 +1,63 @@
+name: Build and deploy
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  # Qiita の新着記事を反映するため毎日ビルドする（06:17 JST）
+  schedule:
+    - cron: "17 21 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  site:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - run: npm ci
+
+      - run: npm run build
+        env:
+          PUBLIC_GA_ID: ${{ vars.PUBLIC_GA_ID }}
+          QIITA_TOKEN: ${{ secrets.QIITA_TOKEN }}
+
+      # インフラ（infra/）を作成し、リポジトリ変数を設定するまではデプロイしない
+      - name: Configure AWS credentials
+        if: github.event_name != 'pull_request' && vars.AWS_DEPLOY_ROLE_ARN != ''
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: us-east-1
+
+      - name: Upload to S3 and invalidate CloudFront
+        if: github.event_name != 'pull_request' && vars.AWS_DEPLOY_ROLE_ARN != ''
+        env:
+          BUCKET: ${{ vars.S3_BUCKET }}
+          DISTRIBUTION_ID: ${{ vars.CLOUDFRONT_DISTRIBUTION_ID }}
+        run: |
+          # 1. ハッシュ付きアセットを先に置く（新しい HTML から参照されるため）
+          aws s3 sync dist/_astro "s3://$BUCKET/_astro" \
+            --cache-control "public, max-age=31536000, immutable"
+          # 2. HTML などを更新し、不要になったファイルを削除する
+          aws s3 sync dist "s3://$BUCKET" --delete --exclude "_astro/*" \
+            --cache-control "public, max-age=0, s-maxage=86400, must-revalidate"
+          # 3. 古いアセットを削除する
+          aws s3 sync dist/_astro "s3://$BUCKET/_astro" --delete \
+            --cache-control "public, max-age=31536000, immutable"
+          aws cloudfront create-invalidation --distribution-id "$DISTRIBUTION_ID" --paths "/*"
