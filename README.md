@@ -111,7 +111,7 @@ web-kojiisd/
 ├── astro.config.mjs          # サイトURL、Tailwind などの設定
 ├── package.json
 ├── .nvmrc                    # Node.js のバージョン（GitHub Actions でも使用）
-├── .github/workflows/        # ビルド・デプロイ（deploy.yml）、インフラのチェック（infra.yml）
+├── .github/workflows/        # サイトのビルド・デプロイ（deploy.yml）、インフラのチェック（infra.yml）・反映（infra-deploy.yml）
 ├── infra/                    # AWS CDK（S3、CloudFront、ACM、Route 53、デプロイ用 IAM ロール）
 ├── .env.example              # 環境変数のサンプル
 ├── public/                   # そのまま配信されるファイル（favicon、画像）
@@ -204,6 +204,7 @@ AWS の認証には OIDC を使うため、アクセスキーを GitHub に保�
 | `AWS_DEPLOY_ROLE_ARN` | Variables | CDK の出力 `DeployRoleArn`。未設定の間はビルドのみ行い、デプロイしない |
 | `S3_BUCKET` | Variables | CDK の出力 `BucketName` |
 | `CLOUDFRONT_DISTRIBUTION_ID` | Variables | CDK の出力 `DistributionId` |
+| `AWS_INFRA_ROLE_ARN` | Variables | CDK の出力 `InfraDeployRoleArn`。「Deploy infra」ワークフローで使用 |
 | `PUBLIC_GA_ID` | Variables | Google Analytics 4 の測定ID（`G-...`）。未設定ならタグを出力しない |
 | `QIITA_TOKEN` | Secrets（任意） | Qiita API のアクセストークン。未認証だと 60回/時 の制限あり |
 

@@ -25,6 +25,8 @@ export interface SiteStackProps extends cdk.StackProps {
   /** デプロイを許可する GitHub リポジトリ（owner/repo）とブランチ */
   githubRepo: string;
   githubBranch: string;
+  /** インフラのデプロイ（cdk deploy）を許可する GitHub Actions の environment 名 */
+  githubInfraEnvironment: string;
   /** 既存の GitHub OIDC プロバイダーの ARN（アカウントに既にある場合） */
   githubOidcProviderArn?: string;
 }
@@ -117,9 +119,31 @@ export class SiteStack extends cdk.Stack {
       }),
     );
 
+    // GitHub Actions から cdk deploy するためのロール。
+    // 権限は CDK のブートストラップロール（cdk-<修飾子>-*）を引き受けることだけで、
+    // 実際の変更はブートストラップの実行ロール経由で行う（CDK の推奨構成）。
+    const qualifier = this.node.tryGetContext("@aws-cdk/core:bootstrapQualifier") ?? "hnb659fds";
+    const infraDeployRole = new iam.Role(this, "InfraDeployRole", {
+      description: `GitHub Actions CDK deploy role for ${props.githubRepo}`,
+      maxSessionDuration: cdk.Duration.hours(1),
+      assumedBy: new iam.WebIdentityPrincipal(provider.oidcProviderArn, {
+        StringEquals: {
+          "token.actions.githubusercontent.com:aud": "sts.amazonaws.com",
+          "token.actions.githubusercontent.com:sub": `repo:${props.githubRepo}:environment:${props.githubInfraEnvironment}`,
+        },
+      }),
+    });
+    infraDeployRole.addToPolicy(
+      new iam.PolicyStatement({
+        actions: ["sts:AssumeRole"],
+        resources: [cdk.Arn.format({ service: "iam", region: "", resource: "role", resourceName: `cdk-${qualifier}-*` }, this)],
+      }),
+    );
+
     new cdk.CfnOutput(this, "BucketName", { value: bucket.bucketName });
     new cdk.CfnOutput(this, "DistributionId", { value: distribution.distributionId });
     new cdk.CfnOutput(this, "DistributionDomainName", { value: distribution.distributionDomainName });
     new cdk.CfnOutput(this, "DeployRoleArn", { value: deployRole.roleArn });
+    new cdk.CfnOutput(this, "InfraDeployRoleArn", { value: infraDeployRole.roleArn });
   }
 }
