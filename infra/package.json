@@ -5,9 +5,10 @@
   "scripts": {
     "build": "tsc --noEmit",
     "test": "node --test \"test/**/*.test.js\"",
+    "bootstrap": "cdk bootstrap aws://$(aws sts get-caller-identity --query Account --output text)/us-east-1",
     "synth": "cdk synth",
     "diff": "cdk diff",
-    "deploy": "cdk deploy"
+    "deploy": "cdk deploy --require-approval never"
   },
   "dependencies": {
     "aws-cdk-lib": "^2.274.0",

@@ -1,0 +1,51 @@
+name: Deploy infra
+
+# インフラ（infra/）の変更を AWS に反映する。master から手動でのみ実行できる。
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "diff: 差分の確認のみ / deploy: 反映する"
+        type: choice
+        options: [diff, deploy]
+        default: diff
+
+permissions:
+  contents: read
+
+concurrency:
+  group: infra-deploy
+  cancel-in-progress: false
+
+jobs:
+  cdk:
+    if: github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    # IAM ロールの信頼ポリシーはこの environment 名で引き受け元を絞っている
+    environment: infra
+    permissions:
+      contents: read
+      id-token: write
+    defaults:
+      run:
+        working-directory: infra
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: infra/package-lock.json
+
+      - run: npm ci
+
+      - uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ vars.AWS_INFRA_ROLE_ARN }}
+          aws-region: us-east-1
+
+      - run: npx cdk diff
+
+      - if: inputs.mode == 'deploy'
+        run: npx cdk deploy --require-approval never

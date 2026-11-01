@@ -11,7 +11,8 @@
 | CloudFront Function | 正規ホスト以外を `https://www.kojiisd.jp` へ 301 で転送し、`/path/` を `/path/index.html` に解決する |
 | ACM 証明書 | 上記 3 ホストを 1 枚でカバー（us-east-1、Route 53 で DNS 検証） |
 | Route 53 | 各ホストの A / AAAA エイリアスレコード |
-| IAM（OIDC） | GitHub Actions 用のデプロイロール。`kojiisd/web-kojiisd` の `master` からのみ引き受け可能で、S3 への同期と CloudFront のキャッシュ削除だけを許可する |
+| IAM（OIDC）: サイト用 | `DeployRole`。`kojiisd/web-kojiisd` の `master` からのみ引き受け可能で、S3 への同期と CloudFront のキャッシュ削除だけを許可する |
+| IAM（OIDC）: インフラ用 | `InfraDeployRole`。GitHub Actions の environment `infra` からのみ引き受け可能で、CDK のブートストラップロール（`cdk-kojiweb-*`）を引き受けることだけを許可する |
 
 スタックはすべて us-east-1 に作成します（CloudFront 用の証明書は us-east-1 にある必要があるため）。
 
@@ -29,7 +30,7 @@ infra/
 npm ci
 npm run build   # 型チェック
 npm test        # CloudFront Function のテスト
-npx cdk diff    # 変更差分の確認（AWS の認証情報が必要）
+npm run diff    # 変更差分の確認（AWS の認証情報が必要）
 ```
 
 ## 初回構築
@@ -42,30 +43,32 @@ AWS CloudShell（バージニア北部）か、管理者権限の認証情報が
    aws iam list-open-id-connect-providers
    ```
 
-   `token.actions.githubusercontent.com` が既にある場合は、以降の `cdk deploy` に `-c githubOidcProviderArn=<その ARN>` を付けてください（同じプロバイダーは 1 アカウントに 1 つしか作れません）。
+   `token.actions.githubusercontent.com` が既にある場合は、手順 3 を `npm run deploy -- -c githubOidcProviderArn=<その ARN>` で実行してください（同じプロバイダーは 1 アカウントに 1 つしか作れません）。
 
-2. **CDK のブートストラップ**（us-east-1 で未実施、または古い場合）
+2. **CDK のブートストラップ**
 
    ```sh
-   cd infra
+   git clone https://github.com/kojiisd/web-kojiisd.git
+   cd web-kojiisd/infra
    npm ci
-   npx cdk bootstrap aws://<アカウントID>/us-east-1
+   npm run bootstrap
    ```
+
+   このプロジェクトは専用の修飾子 `kojiweb`（スタック名 `CDKToolkitWebKojiisd`）でブートストラップします（`cdk.json` で設定）。
+   アカウントに過去の CDK ブートストラップ（既定の修飾子 `hnb659fds`）の残骸があっても衝突しません。
 
 3. **デプロイ**
 
    ```sh
-   npx cdk deploy
+   npm run diff     # 作成されるリソースを確認する（任意）
+   npm run deploy
    ```
 
+   承認の確認（y/n）は省略しています。CloudShell の接続が切れても止まらないよう、`nohup npm run deploy > ~/deploy.log 2>&1 &` のようにバックグラウンドで実行しても構いません。
    証明書の DNS 検証に数分かかります。この時点で `www.kojiisd.jp` と `kojiisd.jp` のレコードが作成されます。
    `kojiisd.jp` はエイリアスレコードなので、既存の MX（Zoho）や TXT には影響しません。
 
-4. **`cdk.context.json` をコミットする**
-
-   ホストゾーンの検索結果がキャッシュされます。CDK の推奨どおりリポジトリに含めてください。
-
-5. **GitHub に変数を設定する**
+4. **GitHub に変数を設定する**
 
    リポジトリの Settings → Secrets and variables → Actions → Variables に、`cdk deploy` の出力を登録します。
 
@@ -74,12 +77,26 @@ AWS CloudShell（バージニア北部）か、管理者権限の認証情報が
    | `AWS_DEPLOY_ROLE_ARN` | `DeployRoleArn` |
    | `S3_BUCKET` | `BucketName` |
    | `CLOUDFRONT_DISTRIBUTION_ID` | `DistributionId` |
+   | `AWS_INFRA_ROLE_ARN` | `InfraDeployRoleArn` |
 
    あわせて `PUBLIC_GA_ID`（GA4 の測定 ID）も設定します。
+   出力は CloudFormation コンソール → `WebKojiisdSite` →「出力」タブでも確認できます。
 
-6. **初回デプロイ**
+5. **初回デプロイ**
 
    Actions → 「Build and deploy」→ Run workflow で実行し、`https://www.kojiisd.jp/` と `https://kojiisd.jp/`（→ www へ転送）を確認します。
+
+## 2 回目以降のインフラ変更（GitHub Actions）
+
+初回構築の後は、CloudShell を使わずに GitHub Actions から反映できます。
+
+1. `infra/` の変更を `master` にマージする
+2. Actions →「Deploy infra」→ Run workflow を開き、`mode` を選んで実行する
+   - `diff`：差分の確認だけ（ログに出力される）
+   - `deploy`：AWS に反映する
+
+ワークフローは environment `infra` で動き、`InfraDeployRole` 経由で CDK のブートストラップロールを引き受けます。
+Settings → Environments → `infra` で「Deployment branches」を `master` に限定したり、承認者を設定したりすると、さらに安全です。
 
 ## Amplify Hosting からの切り替え（web.kojiisd.jp）
 
@@ -88,13 +105,8 @@ AWS CloudShell（バージニア北部）か、管理者権限の認証情報が
 
 1. Amplify コンソール → `hugo-web-kojiisd` → ホスティング → カスタムドメイン で、`kojiisd.jp` のドメイン設定を削除する
 2. Route 53 で `web.kojiisd.jp` の CNAME（`d22piiy8eayfot.cloudfront.net`）が消えたことを確認する（残っていれば削除する）
-3. `cdk.json` の `context` に `"attachWebDomain": true` を追加してデプロイする
-
-   ```sh
-   npx cdk deploy
-   ```
-
-4. `https://web.kojiisd.jp/` が `https://www.kojiisd.jp/` へ転送されることを確認し、`cdk.json` の変更をコミットする
+3. `cdk.json` の `context` に `"attachWebDomain": true` を追加した変更を `master` にマージし、「Deploy infra」を `deploy` で実行する（CloudShell なら `npm run deploy`）
+4. `https://web.kojiisd.jp/` が `https://www.kojiisd.jp/` へ転送されることを確認する
 5. Amplify のアプリ `hugo-web-kojiisd` を削除する
 
 手順 1〜3 の間（数分）だけ `web.kojiisd.jp` にアクセスできなくなります。

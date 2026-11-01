@@ -15,5 +15,6 @@ new SiteStack(app, "WebKojiisdSite", {
   pendingHosts: attachWebDomain ? [] : ["web.kojiisd.jp"],
   githubRepo: "kojiisd/web-kojiisd",
   githubBranch: "master",
+  githubInfraEnvironment: "infra",
   githubOidcProviderArn: app.node.tryGetContext("githubOidcProviderArn"),
 });
