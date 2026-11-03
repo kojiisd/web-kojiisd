@@ -4,9 +4,11 @@ import "../styles/global.css";
 interface Props {
   title: string;
   description: string;
+  /** トップページでは見出しと重なるため、ヘッダーを出さない */
+  showHeader?: boolean;
 }
 
-const { title, description } = Astro.props;
+const { title, description, showHeader = true } = Astro.props;
 const gaId = import.meta.env.PUBLIC_GA_ID;
 const canonical = new URL(Astro.url.pathname, Astro.site);
 ---
@@ -49,13 +51,17 @@ const canonical = new URL(Astro.url.pathname, Astro.site);
     }
   </head>
   <body class="flex min-h-screen flex-col font-sans">
-    <header class="mx-auto flex w-full max-w-4xl items-center gap-3 px-4 py-6">
-      <a href="/" class="flex items-center gap-3 font-semibold">
-        <img src="/images/logo_kojiisd_small.png" alt="" width="32" height="32" class="dark:invert" />
-        kojiisd
-      </a>
-    </header>
-    <main class="mx-auto w-full max-w-4xl flex-1 px-4 pb-16">
+    {
+      showHeader && (
+        <header class="mx-auto flex w-full max-w-4xl items-center gap-3 px-4 py-6">
+          <a href="/" class="flex items-center gap-3 font-semibold">
+            <img src="/images/logo_kojiisd_small.png" alt="" width="32" height="32" class="dark:invert" />
+            kojiisd
+          </a>
+        </header>
+      )
+    }
+    <main class="mx-auto flex w-full max-w-4xl flex-1 flex-col px-4 pb-16">
       <slot />
     </main>
     <footer class="border-t border-slate-200 py-8 text-center text-sm text-slate-500 dark:border-slate-800">

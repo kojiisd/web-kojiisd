@@ -5,4 +5,6 @@ links:
   - { label: Qiita, url: "https://qiita.com/kojiisd", icon: qiita }
   - { label: X, url: "https://x.com/kojiisd", icon: x }
   - { label: Medium, url: "https://medium.com/@kishida58", icon: medium }
+feeds:
+  - { source: devto, user: kojiisd }
 ---

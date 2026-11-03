@@ -17,6 +17,15 @@ const site = defineCollection({
         icon: z.string().optional(),
       }),
     ),
+    // トップに最新記事を並べるフィード（dev.to / Qiita）
+    feeds: z
+      .array(
+        z.object({
+          source: z.enum(["devto", "qiita"]),
+          user: z.string(),
+        }),
+      )
+      .default([]),
   }),
 });
 

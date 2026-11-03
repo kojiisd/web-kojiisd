@@ -6,7 +6,7 @@ kojiisd のポートフォリオサイトを、構造も含めてオープンに
 - コンテンツはすべて **Markdown** で管理
 - **Astro** で静的HTMLにビルド
 - **S3 + CloudFront** で配信（インフラは `infra/` の **AWS CDK** で定義）
-- **GitHub Actions** でビルド・デプロイ（`master` への push と毎日の定期実行）
+- **GitHub Actions** でビルド・デプロイ（`main` への push と毎日の定期実行）
 
 ## 仕組み
 
@@ -18,12 +18,12 @@ flowchart LR
     tpl["src/layouts, src/components<br/>（.astro テンプレート）"]
     css["src/styles/global.css<br/>（Tailwind CSS）"]
   end
-  qiita["Qiita API"]
+  feeds["dev.to / Qiita API"]
   md --> build
   schema --> build
   tpl --> build
   css --> build
-  qiita -- ビルド時に記事取得 --> build
+  feeds -- ビルド時に記事取得 --> build
   build["astro build"] --> dist["dist/<br/>（静的 HTML / CSS）"]
   dist -- GitHub Actions（OIDC） --> s3["S3"]
   s3 --> cf["CloudFront<br/>www.kojiisd.jp"]
@@ -118,11 +118,11 @@ web-kojiisd/
 └── src/
     ├── content.config.ts     # コレクションと front matter の型定義
     ├── content/              # ★ コンテンツ（Markdown）
-    │   ├── site.md           #   トップの見出しとリンク（GitHub / Qiita / X など）
+    │   ├── site.md           #   トップの見出しとリンク、記事を取得するフィード
     │   └── works/            #   成果物（1件 = 1ファイル、画像も同じ場所に置ける）
     ├── lib/
-    │   └── qiita.ts          # ビルド時に Qiita API から記事を取得
-    ├── components/           # タイルなどの部品（LinkTiles, WorkTiles, ArticleTiles）
+    │   └── articles.ts       # ビルド時に dev.to / Qiita の API から記事を取得
+    ├── components/           # タイルなどの部品（Tile, BrandIcon）
     ├── layouts/
     │   ├── BaseLayout.astro  # <head>、OGP、Google Analytics
     │   └── MarkdownLayout.astro  # Markdown で書いたページ用
@@ -143,7 +143,20 @@ HTML を書く必要はありません。編集するのは Markdown だけで�
 | 見出し・リンクを変える | `src/content/site.md` |
 | 成果物を追加する | `src/content/works/` に `.md` を追加 |
 | ページを追加する | `src/pages/` に `.md` を追加 |
-| Qiita の記事 | 編集不要（ビルド時に最新 9 件を自動取得） |
+| 記事 | 編集不要（`site.md` の `feeds` に書いたサービスから、ビルド時に自動取得） |
+
+### トップページのタイル
+
+トップページは PC でスクロールせずに収まるよう、タイルを最大 6 枚（3 列 × 2 行）に絞っています。
+成果物（新しい順）を先に並べ、残りの枠を記事の新着で埋めます。
+
+記事を取得するサービスは `src/content/site.md` の `feeds` で指定します。
+
+```yaml
+feeds:
+  - { source: devto, user: kojiisd }
+  # - { source: qiita, user: kojiisd }   # 複数書くと新しい順に混ぜて表示する
+```
 
 ### 成果物を追加する
 
@@ -185,7 +198,7 @@ title: 登壇資料
 ### 更新の流れ
 
 1. GitHub の Web 画面（または手元）で Markdown を編集・追加する
-2. `master` にコミットする（PR を経由しても可）
+2. `main` にコミットする（PR を経由しても可）
 3. GitHub Actions が自動でビルド・デプロイし、1〜2 分で https://www.kojiisd.jp/ に反映される
 
 front matter の書き間違い（`date` の書式など）はビルドエラーになり、その場合はデプロイされません（公開中のサイトはそのまま残ります）。
@@ -234,7 +247,7 @@ AWS の認証には OIDC を使うため、アクセスキーを GitHub に保�
 | `PUBLIC_GA_ID` | Variables | Google Analytics 4 の測定ID（`G-...`）。未設定ならタグを出力しない |
 | `QIITA_TOKEN` | Secrets（任意） | Qiita API のアクセストークン。未認証だと 60回/時 の制限あり |
 
-Qiita API の取得に失敗してもビルドは止まらず、記事一覧のセクションが非表示になるだけです。
+記事の取得に失敗してもビルドは止まらず、そのフィードの記事がタイルに出ないだけです。
 なお、GitHub はリポジトリに 60 日間更新がないと定期実行を自動で無効化します。その場合は Actions の画面から再度有効化してください。
 
 ### インフラ
