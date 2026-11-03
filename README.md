@@ -53,7 +53,7 @@ const works = defineCollection({
 export const collections = { works };
 ```
 
-（実際の定義は `profile` / `works` / `career` の3コレクションです）
+（実際の定義は `site`（見出しとリンク）/ `works`（成果物）の2コレクションです）
 
 front matter に `title` が無い、`date` の書式が違う、といった誤りは **ビルドエラー** になるため、壊れたページが公開されることはありません。
 
@@ -118,15 +118,15 @@ web-kojiisd/
 └── src/
     ├── content.config.ts     # コレクションと front matter の型定義
     ├── content/              # ★ コンテンツ（Markdown）
-    │   ├── profile.md        #   自己紹介・肩書き・リンク・資格
-    │   ├── works/            #   実績（1件 = 1ファイル）
-    │   └── career/           #   経歴（1件 = 1ファイル）
+    │   ├── site.md           #   トップの見出しとリンク（GitHub / Qiita / X など）
+    │   └── works/            #   成果物（1件 = 1ファイル、画像も同じ場所に置ける）
     ├── lib/
     │   └── qiita.ts          # ビルド時に Qiita API から記事を取得
-    ├── components/           # セクション単位の部品（Hero, Works, Career, QiitaArticles など）
+    ├── components/           # タイルなどの部品（LinkTiles, WorkTiles, ArticleTiles）
     ├── layouts/
-    │   └── BaseLayout.astro  # <head>、OGP、Google Analytics
-    ├── pages/                # ルーティング（ファイル名 = URL）
+    │   ├── BaseLayout.astro  # <head>、OGP、Google Analytics
+    │   └── MarkdownLayout.astro  # Markdown で書いたページ用
+    ├── pages/                # ルーティング（ファイル名 = URL）。.md を置けばページになる
     │   ├── index.astro
     │   ├── 404.astro
     │   └── works/[slug].astro
@@ -136,33 +136,59 @@ web-kojiisd/
 
 ## コンテンツの更新
 
-更新するのは基本的に `src/content/` の Markdown だけです。
+HTML を書く必要はありません。編集するのは Markdown だけです。
 
 | やりたいこと | 編集するファイル |
 |---|---|
-| 自己紹介・肩書きを変える | `src/content/profile.md` |
-| 資格・スキル・リンクを追加する | `src/content/profile.md` の front matter |
-| 実績を追加する | `src/content/works/` に `.md` を追加 |
-| 経歴を追加する | `src/content/career/` に `.md` を追加 |
-| Qiita 記事一覧 | 編集不要（ビルド時に自動取得） |
+| 見出し・リンクを変える | `src/content/site.md` |
+| 成果物を追加する | `src/content/works/` に `.md` を追加 |
+| ページを追加する | `src/pages/` に `.md` を追加 |
+| Qiita の記事 | 編集不要（ビルド時に最新 9 件を自動取得） |
 
-実績・経歴は `draft: true` の間は公開されません。書きかけは `draft: true` のまま push して構いません。
-公開済みの実績・経歴が1件もないセクションは表示されません。
+### 成果物を追加する
 
-例：`src/content/works/genai-service.md`
+`src/content/works/<好きな名前>.md` を作ります。
 
 ```markdown
 ---
-title: 生成AIを組み込んだ〇〇サービス
-summary: 一覧に表示される1〜2行の説明
+title: kintone 連携ツール
+summary: タイルに表示される1〜2行の説明
 date: 2025-04-01
-tags: [AWS, Bedrock, Serverless]
-draft: false
+tags: [kintone, AWS]
+url: https://github.com/kojiisd/xxx   # 任意。指定するとタイルから直接このURLへ飛ぶ
+cover: ./images/kintone-tool.png       # 任意。タイルに出す画像（このファイルからの相対パス）
 ---
 
-## 概要
-本文は普通の Markdown で書きます。
+url を指定しない場合は、ここに書いた本文が詳細ページ（/works/<ファイル名>/）になります。
 ```
+
+- `draft: true` を付けると公開されません。書きかけのまま push して構いません。
+- 画像は `src/content/works/images/` などに置きます。ビルド時に WebP へ変換され、サイズも最適化されます。
+- 公開中の成果物が 1 件もない場合、Works の欄は表示されません。
+
+### ページを追加する
+
+`src/pages/<URL にしたい名前>.md` を作ります。たとえば `src/pages/talks.md` は `/talks/` になります。
+
+```markdown
+---
+layout: ../layouts/MarkdownLayout.astro
+title: 登壇資料
+---
+
+## 2025年
+- [〇〇勉強会](https://speakerdeck.com/...)
+```
+
+1 行目の `layout` は決まり文句で、ヘッダー・フッターと文章の見た目を付けるためのものです。
+
+### 更新の流れ
+
+1. GitHub の Web 画面（または手元）で Markdown を編集・追加する
+2. `master` にコミットする（PR を経由しても可）
+3. GitHub Actions が自動でビルド・デプロイし、1〜2 分で https://www.kojiisd.jp/ に反映される
+
+front matter の書き間違い（`date` の書式など）はビルドエラーになり、その場合はデプロイされません（公開中のサイトはそのまま残ります）。
 
 ## ローカル開発
 

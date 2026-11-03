@@ -1,16 +1,11 @@
 ---
-title: 実績のタイトル
-summary: 一覧に表示される1〜2行の説明
+title: 成果物のタイトル
+summary: タイルに表示される1〜2行の説明
 date: 2025-04-01
 tags: [AWS, Bedrock]
-# url: https://example.com   # 外部リンクがあれば
+# url: https://github.com/kojiisd/xxx   # 指定するとタイルから直接このURLへ飛ぶ
+# cover: ./images/example.png          # タイルに表示する画像（任意）
 draft: true # false にすると公開される
 ---
 
-ここに実績の詳細を Markdown で書きます（`/works/example/` として公開されます）。
-
-## 背景
-
-## やったこと
-
-## 結果
+url を指定しない場合は、ここに書いた Markdown が詳細ページ（`/works/example/`）になります。
