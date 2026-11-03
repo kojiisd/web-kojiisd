@@ -14,7 +14,7 @@ new SiteStack(app, "WebKojiisdSite", {
   redirectHosts: ["kojiisd.jp", "web.kojiisd.jp"],
   pendingHosts: attachWebDomain ? [] : ["web.kojiisd.jp"],
   githubRepo: "kojiisd/web-kojiisd",
-  githubBranch: "master",
+  githubBranch: "main",
   githubInfraEnvironment: "infra",
   useExistingGithubOidcProvider: [true, "true"].includes(app.node.tryGetContext("useExistingGithubOidcProvider")),
 });

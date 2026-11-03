@@ -11,7 +11,7 @@
 | CloudFront Function | 正規ホスト以外を `https://www.kojiisd.jp` へ 301 で転送し、`/path/` を `/path/index.html` に解決する |
 | ACM 証明書 | 上記 3 ホストを 1 枚でカバー（us-east-1、Route 53 で DNS 検証） |
 | Route 53 | 各ホストの A / AAAA エイリアスレコード |
-| IAM（OIDC）: サイト用 | `DeployRole`。`kojiisd/web-kojiisd` の `master` からのみ引き受け可能で、S3 への同期と CloudFront のキャッシュ削除だけを許可する |
+| IAM（OIDC）: サイト用 | `DeployRole`。`kojiisd/web-kojiisd` の `main` からのみ引き受け可能で、S3 への同期と CloudFront のキャッシュ削除だけを許可する |
 | IAM（OIDC）: インフラ用 | `InfraDeployRole`。GitHub Actions の environment `infra` からのみ引き受け可能で、CDK のブートストラップロール（`cdk-kojiweb-*`）を引き受けることだけを許可する |
 
 スタックはすべて us-east-1 に作成します（CloudFront 用の証明書は us-east-1 にある必要があるため）。
@@ -91,13 +91,13 @@ AWS CloudShell（バージニア北部）か、管理者権限の認証情報が
 
 初回構築の後は、CloudShell を使わずに GitHub Actions から反映できます。
 
-1. `infra/` の変更を `master` にマージする
+1. `infra/` の変更を `main` にマージする
 2. Actions →「Deploy infra」→ Run workflow を開き、`mode` を選んで実行する
    - `diff`：差分の確認だけ（ログに出力される）
    - `deploy`：AWS に反映する
 
 ワークフローは environment `infra` で動き、`InfraDeployRole` 経由で CDK のブートストラップロールを引き受けます。
-Settings → Environments → `infra` で「Deployment branches」を `master` に限定したり、承認者を設定したりすると、さらに安全です。
+Settings → Environments → `infra` で「Deployment branches」を `main` に限定したり、承認者を設定したりすると、さらに安全です。
 
 ## Amplify Hosting からの切り替え（web.kojiisd.jp）
 
@@ -106,7 +106,7 @@ Settings → Environments → `infra` で「Deployment branches」を `master` �
 
 1. Amplify コンソール → `hugo-web-kojiisd` → ホスティング → カスタムドメイン で、`kojiisd.jp` のドメイン設定を削除する
 2. Route 53 で `web.kojiisd.jp` の CNAME（`d22piiy8eayfot.cloudfront.net`）が消えたことを確認する（残っていれば削除する）
-3. `cdk.json` の `context` に `"attachWebDomain": true` を追加した変更を `master` にマージし、「Deploy infra」を `deploy` で実行する（CloudShell なら `npm run deploy`）
+3. `cdk.json` の `context` に `"attachWebDomain": true` を追加した変更を `main` にマージし、「Deploy infra」を `deploy` で実行する（CloudShell なら `npm run deploy`）
 4. `https://web.kojiisd.jp/` が `https://www.kojiisd.jp/` へ転送されることを確認する
 5. Amplify のアプリ `hugo-web-kojiisd` を削除する
 

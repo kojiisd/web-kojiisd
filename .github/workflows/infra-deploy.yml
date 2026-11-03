@@ -1,6 +1,6 @@
 name: Deploy infra
 
-# インフラ（infra/）の変更を AWS に反映する。master から手動でのみ実行できる。
+# インフラ（infra/）の変更を AWS に反映する。main から手動でのみ実行できる。
 on:
   workflow_dispatch:
     inputs:
@@ -19,7 +19,7 @@ concurrency:
 
 jobs:
   cdk:
-    if: github.ref == 'refs/heads/master'
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     # IAM ロールの信頼ポリシーはこの environment 名で引き受け元を絞っている
     environment: infra

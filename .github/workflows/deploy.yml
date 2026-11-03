@@ -2,9 +2,9 @@ name: Build and deploy
 
 on:
   push:
-    branches: [master]
+    branches: [main]
   pull_request:
-  # Qiita の新着記事を反映するため毎日ビルドする（06:17 JST）
+  # dev.to などの新着記事を反映するため毎日ビルドする（06:17 JST）
   schedule:
     - cron: "17 21 * * *"
   workflow_dispatch:
