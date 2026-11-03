@@ -3,7 +3,7 @@ import { SiteStack } from "../lib/site-stack.ts";
 
 const app = new cdk.App();
 
-// web.kojiisd.jp は Amplify から切り離した後、cdk.json の context に "attachWebDomain": true を追加して割り当てる（infra/README.md 参照）
+// web.kojiisd.jp は cdk.json の context に "attachWebDomain": true を追加すると割り当てる
 const attachWebDomain = app.node.tryGetContext("attachWebDomain") === "true" || app.node.tryGetContext("attachWebDomain") === true;
 
 new SiteStack(app, "WebKojiisdSite", {
