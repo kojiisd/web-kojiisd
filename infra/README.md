@@ -43,7 +43,8 @@ AWS CloudShell（バージニア北部）か、管理者権限の認証情報が
    aws iam list-open-id-connect-providers
    ```
 
-   `token.actions.githubusercontent.com` が既にある場合は、手順 3 を `npm run deploy -- -c githubOidcProviderArn=<その ARN>` で実行してください（同じプロバイダーは 1 アカウントに 1 つしか作れません）。
+   このアカウントには既にあるため、`cdk.json` の `context` で `"useExistingGithubOidcProvider": true` として既存のものを使っています。
+   別のアカウントで新しく作る場合は `false` にしてください（同じプロバイダーは 1 アカウントに 1 つしか作れず、既にあると `AWS::EarlyValidation::ResourceExistenceCheck` で失敗します）。
 
 2. **CDK のブートストラップ**
 

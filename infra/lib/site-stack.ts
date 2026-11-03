@@ -27,8 +27,11 @@ export interface SiteStackProps extends cdk.StackProps {
   githubBranch: string;
   /** インフラのデプロイ（cdk deploy）を許可する GitHub Actions の environment 名 */
   githubInfraEnvironment: string;
-  /** 既存の GitHub OIDC プロバイダーの ARN（アカウントに既にある場合） */
-  githubOidcProviderArn?: string;
+  /**
+   * アカウントに既にある GitHub OIDC プロバイダーを使う場合は true。
+   * プロバイダーは 1 アカウントに 1 つしか作れないため、既存のものがあると作成に失敗する。
+   */
+  useExistingGithubOidcProvider: boolean;
 }
 
 export class SiteStack extends cdk.Stack {
@@ -92,10 +95,15 @@ export class SiteStack extends cdk.Stack {
     }
 
     // GitHub Actions からのデプロイ用ロール（OIDC、長期のアクセスキーは使わない）
-    const provider = props.githubOidcProviderArn
-      ? iam.OidcProviderNative.fromOidcProviderArn(this, "GitHubOidc", props.githubOidcProviderArn)
+    const githubOidcHost = "token.actions.githubusercontent.com";
+    const provider = props.useExistingGithubOidcProvider
+      ? iam.OidcProviderNative.fromOidcProviderArn(
+          this,
+          "GitHubOidc",
+          cdk.Arn.format({ service: "iam", region: "", resource: "oidc-provider", resourceName: githubOidcHost }, this),
+        )
       : new iam.OidcProviderNative(this, "GitHubOidc", {
-          url: "https://token.actions.githubusercontent.com",
+          url: `https://${githubOidcHost}`,
           clientIds: ["sts.amazonaws.com"],
         });
 
