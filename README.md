@@ -13,7 +13,7 @@
 | パス | 内容 |
 |---|---|
 | `src/content/site.md` | 見出し、リンク、記事フィード（dev.to / Qiita） |
-| `src/content/works/*.md` | トップにタイルで並べる成果物（`draft: true` で非公開） |
+| `src/content/works/*.md` | 成果物（トップのタイルと Works メニュー、詳細ページ。`draft: true` で非公開） |
 | `src/pages/*.md` | 追加ページ（`layout: ../layouts/MarkdownLayout.astro`） |
 
 ```markdown
@@ -22,7 +22,7 @@ title: Some tool
 summary: 1行の説明
 date: 2025-04-01
 tags: [AWS]
-url: https://github.com/kojiisd/some-tool   # 任意: タイルから直接このURLへ
+url: https://some-tool.kojiisd.jp/          # 任意: 詳細ページに「サイトを開く」ボタンを出す
 cover: ./images/some-tool.png              # 任意: タイルの画像
 ---
 ```

@@ -21,8 +21,8 @@ const sourceLabels = { devto: { kind: "dev.to", icon: "devdotto" }, qiita: { kin
 // 成果物を先に、残りの枠を最新記事で埋める
 const tiles = [
   ...works.map((work) => ({
-    href: work.data.url ?? `/works/${work.id}/`,
-    external: Boolean(work.data.url),
+    href: `/works/${work.id}/`,
+    external: false,
     kind: "Work",
     date: work.data.date,
     title: work.data.title,
@@ -40,8 +40,8 @@ const tiles = [
 ].slice(0, MAX_TILES);
 ---
 
-<BaseLayout title={site.data.title} description={site.data.tagline ?? site.data.title} showHeader={false}>
-  <div class="flex flex-1 flex-col justify-center py-10">
+<BaseLayout title={site.data.title} description={site.data.tagline ?? site.data.title} showLogo={false}>
+  <div class="flex flex-1 flex-col justify-center py-6">
     <h1 class="text-3xl font-bold tracking-tight sm:text-4xl">{site.data.title}</h1>
     {site.data.tagline && <p class="mt-2 text-slate-600 dark:text-slate-400">{site.data.tagline}</p>}
 

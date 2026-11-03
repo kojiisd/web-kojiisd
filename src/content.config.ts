@@ -38,7 +38,7 @@ const works = defineCollection({
       summary: z.string(),
       date: z.coerce.date(),
       tags: z.array(z.string()).default([]),
-      // 指定するとタイルから直接このURLへ飛ぶ（詳細ページは作らない）
+      // 成果物そのもののURL（詳細ページに「サイトを開く」ボタンを出す）
       url: z.url().optional(),
       // タイルに表示する画像（Markdown ファイルからの相対パス）
       cover: image().optional(),
