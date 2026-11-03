@@ -1,0 +1,14 @@
+---
+// src/pages/ に置いた Markdown ページ用のレイアウト。
+// front matter に `layout: ../layouts/MarkdownLayout.astro` と title / description を書く。
+import BaseLayout from "./BaseLayout.astro";
+
+const { frontmatter } = Astro.props;
+---
+
+<BaseLayout title={`${frontmatter.title} | kojiisd`} description={frontmatter.description ?? frontmatter.title}>
+  <article class="prose prose-slate dark:prose-invert max-w-none pt-8">
+    <h1>{frontmatter.title}</h1>
+    <slot />
+  </article>
+</BaseLayout>

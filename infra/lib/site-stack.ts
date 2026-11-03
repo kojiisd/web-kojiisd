@@ -18,7 +18,7 @@ export interface SiteStackProps extends cdk.StackProps {
   /** 正規ホストへ 301 で転送するホスト */
   redirectHosts: string[];
   /**
-   * 他の CloudFront（Amplify など）が使用中のため、まだ割り当てられないホスト。
+   * 他の CloudFront が使用中のため、まだ割り当てられないホスト。
    * 証明書には含めるが、ディストリビューションと DNS レコードには追加しない。
    */
   pendingHosts: string[];

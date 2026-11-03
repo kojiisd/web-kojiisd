@@ -1,29 +1,78 @@
 ---
 import { getCollection, getEntry } from "astro:content";
 import BaseLayout from "../layouts/BaseLayout.astro";
-import Career from "../components/Career.astro";
-import Certifications from "../components/Certifications.astro";
-import Hero from "../components/Hero.astro";
-import QiitaArticles from "../components/QiitaArticles.astro";
-import Works from "../components/Works.astro";
-import { fetchQiitaArticles } from "../lib/qiita";
+import BrandIcon from "../components/BrandIcon.astro";
+import Tile from "../components/Tile.astro";
+import { fetchArticles } from "../lib/articles";
 
-const profile = await getEntry("profile", "profile");
-if (!profile) throw new Error("src/content/profile.md が見つかりません");
+// PC でスクロールせずに収まるよう、タイルは最大 6 枚（3 列 × 2 行）にする
+const MAX_TILES = 6;
+
+const site = await getEntry("site", "site");
+if (!site) throw new Error("src/content/site.md が見つかりません");
 
 const works = (await getCollection("works", ({ data }) => !data.draft)).sort(
   (a, b) => b.data.date.valueOf() - a.data.date.valueOf(),
 );
-const career = (await getCollection("career", ({ data }) => !data.draft)).sort(
-  (a, b) => b.data.start.valueOf() - a.data.start.valueOf(),
-);
-const articles = await fetchQiitaArticles("kojiisd");
+const articles = await fetchArticles(site.data.feeds, MAX_TILES);
+
+const sourceLabels = { devto: { kind: "dev.to", icon: "devdotto" }, qiita: { kind: "Qiita", icon: "qiita" } };
+
+// 成果物を先に、残りの枠を最新記事で埋める
+const tiles = [
+  ...works.map((work) => ({
+    href: work.data.url ?? `/works/${work.id}/`,
+    external: Boolean(work.data.url),
+    kind: "Work",
+    date: work.data.date,
+    title: work.data.title,
+    tags: work.data.tags,
+    cover: work.data.cover,
+  })),
+  ...articles.map((article) => ({
+    href: article.url,
+    external: true,
+    ...sourceLabels[article.source],
+    date: article.publishedAt,
+    title: article.title,
+    tags: article.tags,
+  })),
+].slice(0, MAX_TILES);
 ---
 
-<BaseLayout title={`${profile.data.name} | Portfolio`} description={profile.data.title}>
-  <Hero profile={profile} />
-  <Certifications certifications={profile.data.certifications} skills={profile.data.skills} />
-  {works.length > 0 && <Works works={works} />}
-  {career.length > 0 && <Career career={career} />}
-  {articles.length > 0 && <QiitaArticles articles={articles} />}
+<BaseLayout title={site.data.title} description={site.data.tagline ?? site.data.title} showHeader={false}>
+  <div class="flex flex-1 flex-col justify-center py-10">
+    <h1 class="text-3xl font-bold tracking-tight sm:text-4xl">{site.data.title}</h1>
+    {site.data.tagline && <p class="mt-2 text-slate-600 dark:text-slate-400">{site.data.tagline}</p>}
+
+    <ul class="mt-6 flex flex-wrap gap-2">
+      {
+        site.data.links.map((link) => (
+          <li>
+            <a
+              href={link.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              class="flex items-center gap-2 rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold transition hover:border-sky-500 hover:text-sky-600 dark:border-slate-700 dark:hover:text-sky-400"
+            >
+              {link.icon && <BrandIcon slug={link.icon} class="size-4" />}
+              {link.label}
+            </a>
+          </li>
+        ))
+      }
+    </ul>
+
+    {
+      tiles.length > 0 && (
+        <ul class="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {tiles.map((tile) => (
+            <li>
+              <Tile {...tile} />
+            </li>
+          ))}
+        </ul>
+      )
+    }
+  </div>
 </BaseLayout>

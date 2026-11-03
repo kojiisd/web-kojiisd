@@ -1,0 +1,37 @@
+---
+import type { ImageMetadata } from "astro";
+import { Image } from "astro:assets";
+import BrandIcon from "./BrandIcon.astro";
+
+interface Props {
+  href: string;
+  external?: boolean;
+  /** 種別の表示（例: Work, dev.to） */
+  kind: string;
+  /** 種別の前に出す simple-icons のスラッグ */
+  icon?: string;
+  date: Date;
+  title: string;
+  tags: string[];
+  cover?: ImageMetadata;
+}
+
+const { href, external = false, kind, icon, date, title, tags, cover } = Astro.props;
+const month = `${date.getFullYear()}.${String(date.getMonth() + 1).padStart(2, "0")}`;
+---
+
+<a
+  href={href}
+  {...external ? { target: "_blank", rel: "noopener noreferrer" } : {}}
+  class="group flex h-full gap-4 rounded-xl border border-slate-200 bg-white p-4 transition hover:-translate-y-0.5 hover:border-sky-500 hover:shadow-md dark:border-slate-800 dark:bg-slate-900"
+>
+  {cover && <Image src={cover} alt="" width={128} height={128} class="size-16 shrink-0 rounded-lg object-cover" />}
+  <div class="flex min-w-0 flex-col">
+    <p class="flex items-center gap-1.5 text-xs text-slate-500">
+      {icon && <BrandIcon slug={icon} class="size-3.5" />}
+      {kind} · {month}
+    </p>
+    <h3 class="mt-1.5 line-clamp-2 font-semibold group-hover:text-sky-600 dark:group-hover:text-sky-400">{title}</h3>
+    {tags.length > 0 && <p class="mt-auto truncate pt-2 text-xs text-slate-500">{tags.map((tag) => `#${tag}`).join(" ")}</p>}
+  </div>
+</a>
