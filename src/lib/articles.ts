@@ -1,4 +1,4 @@
-export type ArticleSource = "devto" | "qiita";
+export type ArticleSource = "devto" | "qiita" | "bluesky";
 
 export interface Article {
   source: ArticleSource;
@@ -12,6 +12,8 @@ export interface Article {
 export interface Feed {
   source: ArticleSource;
   user: string;
+  /** このフィードから出す最大件数（省略時は全体の件数まで） */
+  limit?: number;
 }
 
 interface DevtoItem {
@@ -28,6 +30,20 @@ interface QiitaItem {
   created_at: string;
   likes_count: number;
   tags: { name: string }[];
+}
+
+interface BlueskyFeedItem {
+  post: {
+    uri: string;
+    record: {
+      text: string;
+      createdAt: string;
+      facets?: { features: { $type: string; tag?: string }[] }[];
+    };
+    likeCount?: number;
+  };
+  // リポストなどの場合に付く
+  reason?: unknown;
 }
 
 async function getJson<T>(url: string, headers: Record<string, string> = {}): Promise<T> {
@@ -66,14 +82,31 @@ async function fetchQiita(user: string, count: number): Promise<Article[]> {
   }));
 }
 
-const fetchers = { devto: fetchDevto, qiita: fetchQiita };
+async function fetchBluesky(user: string, count: number): Promise<Article[]> {
+  const { feed } = await getJson<{ feed: BlueskyFeedItem[] }>(
+    `https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=${user}&filter=posts_no_replies&limit=${Math.min(count * 3, 100)}`,
+  );
+  return feed
+    .filter((item) => !item.reason && item.post.record.text.trim() !== "")
+    .slice(0, count)
+    .map(({ post }) => ({
+      source: "bluesky",
+      title: post.record.text,
+      url: `https://bsky.app/profile/${user}/post/${post.uri.split("/").pop()}`,
+      publishedAt: new Date(post.record.createdAt),
+      reactions: post.likeCount ?? 0,
+      tags: (post.record.facets ?? []).flatMap((facet) => facet.features.flatMap((feature) => (feature.tag ? [feature.tag] : []))),
+    }));
+}
+
+const fetchers = { devto: fetchDevto, qiita: fetchQiita, bluesky: fetchBluesky };
 
 // ビルド時に各サービスから記事を取得し、新しい順に count 件を返す。
 // 取得に失敗したフィードは警告を出して無視し、ビルドは止めない。
 export async function fetchArticles(feeds: Feed[], count: number): Promise<Article[]> {
   const results = await Promise.all(
     feeds.map((feed) =>
-      fetchers[feed.source](feed.user, count).catch((error) => {
+      fetchers[feed.source](feed.user, Math.min(feed.limit ?? count, count)).catch((error) => {
         console.warn(`[${feed.source}] 記事を取得できませんでした: ${error}`);
         return [];
       }),
