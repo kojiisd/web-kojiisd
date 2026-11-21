@@ -9,5 +9,5 @@ links:
   - { label: Medium, url: "https://medium.com/@kishida58", icon: medium }
 feeds:
   - { source: devto, user: kojiisd }
-  - { source: bluesky, user: kishida58.bsky.social, limit: 1 }
+  - { source: bluesky, user: kishida58.bsky.social, limit: 3 }
 ---
