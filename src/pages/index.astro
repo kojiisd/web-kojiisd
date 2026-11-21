@@ -1,51 +1,35 @@
 ---
 import { getCollection, getEntry } from "astro:content";
+import { Image } from "astro:assets";
 import BaseLayout from "../layouts/BaseLayout.astro";
 import BrandIcon from "../components/BrandIcon.astro";
-import Tile from "../components/Tile.astro";
-import { fetchArticles } from "../lib/articles";
+import FeedList from "../components/FeedList.astro";
+import { fetchArticles, profileUrl } from "../lib/articles";
 
-// PC でスクロールせずに収まるよう、タイルは最大 6 枚（3 列 × 2 行）にする
-const MAX_TILES = 6;
+// PC でスクロールせずに収まるよう、各列は最大 3 件にする
+const MAX_ITEMS = 3;
 
 const site = await getEntry("site", "site");
 if (!site) throw new Error("src/content/site.md が見つかりません");
 
-const works = (await getCollection("works", ({ data }) => !data.draft)).sort(
-  (a, b) => b.data.date.valueOf() - a.data.date.valueOf(),
-);
-const articles = await fetchArticles(site.data.feeds, MAX_TILES);
+const works = (await getCollection("works", ({ data }) => !data.draft))
+  .sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf())
+  .slice(0, MAX_ITEMS);
 
-const sourceLabels = {
-  devto: { kind: "dev.to", icon: "devdotto" },
-  qiita: { kind: "Qiita", icon: "qiita" },
-  bluesky: { kind: "Bluesky", icon: "bluesky" },
-};
+// 記事（dev.to / Qiita）と SNS の投稿（Bluesky）は別の列に分ける
+const articleFeeds = site.data.feeds.filter((feed) => feed.source !== "bluesky");
+const postFeeds = site.data.feeds.filter((feed) => feed.source === "bluesky");
+const [articles, posts] = await Promise.all([
+  fetchArticles(articleFeeds, MAX_ITEMS),
+  fetchArticles(postFeeds, MAX_ITEMS),
+]);
 
-// 成果物を先に、残りの枠を最新記事で埋める
-const tiles = [
-  ...works.map((work) => ({
-    href: `/works/${work.id}/`,
-    external: false,
-    kind: "Work",
-    date: work.data.date,
-    title: work.data.title,
-    tags: work.data.tags,
-    cover: work.data.cover,
-  })),
-  ...articles.map((article) => ({
-    href: article.url,
-    external: true,
-    ...sourceLabels[article.source],
-    date: article.publishedAt,
-    title: article.title,
-    tags: article.tags,
-  })),
-].slice(0, MAX_TILES);
+const columns = [works.length > 0, articles.length > 0, posts.length > 0].filter(Boolean).length;
+const gridCols = { 0: "", 1: "lg:grid-cols-1", 2: "lg:grid-cols-2", 3: "lg:grid-cols-3" }[columns];
 ---
 
 <BaseLayout title={site.data.title} description={site.data.tagline ?? site.data.title} showLogo={false}>
-  <div class="flex flex-1 flex-col justify-center py-6">
+  <div class="flex flex-1 flex-col justify-center py-4">
     <h1 class="text-3xl font-bold tracking-tight sm:text-4xl">{site.data.title}</h1>
     {site.data.tagline && <p class="mt-2 text-slate-600 dark:text-slate-400">{site.data.tagline}</p>}
 
@@ -68,14 +52,42 @@ const tiles = [
     </ul>
 
     {
-      tiles.length > 0 && (
-        <ul class="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {tiles.map((tile) => (
-            <li>
-              <Tile {...tile} />
-            </li>
-          ))}
-        </ul>
+      columns > 0 && (
+        <div class:list={["mt-8 grid gap-10", gridCols]}>
+          {works.length > 0 && (
+            <section>
+              <h2 class="text-xs font-semibold tracking-widest text-sky-600 uppercase dark:text-sky-400">Works</h2>
+              <ul class="mt-4 space-y-3">
+                {works.map((work) => (
+                  <li>
+                    <a
+                      href={`/works/${work.id}/`}
+                      class="group flex gap-4 rounded-xl border border-slate-200 p-4 transition hover:-translate-y-0.5 hover:border-sky-500 hover:shadow-md dark:border-slate-800"
+                    >
+                      {work.data.cover && (
+                        <Image src={work.data.cover} alt="" width={96} height={96} class="size-12 shrink-0 rounded-lg object-cover" />
+                      )}
+                      <div class="min-w-0">
+                        <p class="font-semibold group-hover:text-sky-600 dark:group-hover:text-sky-400">{work.data.title}</p>
+                        <p class="mt-1 line-clamp-2 text-sm text-slate-600 dark:text-slate-400">{work.data.summary}</p>
+                      </div>
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+          {articles.length > 0 && (
+            <FeedList
+              title="Articles"
+              items={articles}
+              more={articleFeeds[0] && { label: "すべての記事", href: profileUrl(articleFeeds[0]) }}
+            />
+          )}
+          {posts.length > 0 && (
+            <FeedList title="Posts" items={posts} more={{ label: "Bluesky で見る", href: profileUrl(postFeeds[0]) }} />
+          )}
+        </div>
       )
     }
   </div>

@@ -1,0 +1,43 @@
+---
+import type { Article } from "../lib/articles";
+import BrandIcon from "./BrandIcon.astro";
+
+interface Props {
+  title: string;
+  items: Article[];
+  /** 一覧の下に出す「もっと見る」リンク */
+  more?: { label: string; href: string };
+}
+
+const { title, items, more } = Astro.props;
+const icons = { devto: "devdotto", qiita: "qiita", bluesky: "bluesky" };
+const formatDate = (date: Date) => date.toLocaleDateString("ja-JP", { timeZone: "Asia/Tokyo" });
+---
+
+<section>
+  <h2 class="text-xs font-semibold tracking-widest text-sky-600 uppercase dark:text-sky-400">{title}</h2>
+  <ul class="mt-4 space-y-3">
+    {
+      items.map((item) => (
+        <li>
+          <a href={item.url} target="_blank" rel="noopener noreferrer" class="group block">
+            <p class="flex items-center gap-1.5 text-xs text-slate-500">
+              <BrandIcon slug={icons[item.source]} class="size-3" />
+              {formatDate(item.publishedAt)}
+            </p>
+            <p class="mt-1 line-clamp-2 text-sm font-semibold group-hover:text-sky-600 dark:group-hover:text-sky-400">
+              {item.title}
+            </p>
+          </a>
+        </li>
+      ))
+    }
+  </ul>
+  {
+    more && (
+      <a href={more.href} target="_blank" rel="noopener noreferrer" class="mt-4 inline-block text-xs text-slate-500 hover:text-sky-600 dark:hover:text-sky-400">
+        {more.label} →
+      </a>
+    )
+  }
+</section>
