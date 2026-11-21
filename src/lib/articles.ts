@@ -101,6 +101,16 @@ async function fetchBluesky(user: string, count: number): Promise<Article[]> {
 
 const fetchers = { devto: fetchDevto, qiita: fetchQiita, bluesky: fetchBluesky };
 
+const profileUrls = {
+  devto: (user: string) => `https://dev.to/${user}`,
+  qiita: (user: string) => `https://qiita.com/${user}`,
+  bluesky: (user: string) => `https://bsky.app/profile/${user}`,
+};
+
+export function profileUrl(feed: Feed): string {
+  return profileUrls[feed.source](feed.user);
+}
+
 // ビルド時に各サービスから記事を取得し、新しい順に count 件を返す。
 // 取得に失敗したフィードは警告を出して無視し、ビルドは止めない。
 export async function fetchArticles(feeds: Feed[], count: number): Promise<Article[]> {
