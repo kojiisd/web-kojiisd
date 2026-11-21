@@ -16,7 +16,11 @@ const works = (await getCollection("works", ({ data }) => !data.draft)).sort(
 );
 const articles = await fetchArticles(site.data.feeds, MAX_TILES);
 
-const sourceLabels = { devto: { kind: "dev.to", icon: "devdotto" }, qiita: { kind: "Qiita", icon: "qiita" } };
+const sourceLabels = {
+  devto: { kind: "dev.to", icon: "devdotto" },
+  qiita: { kind: "Qiita", icon: "qiita" },
+  bluesky: { kind: "Bluesky", icon: "bluesky" },
+};
 
 // 成果物を先に、残りの枠を最新記事で埋める
 const tiles = [

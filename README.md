@@ -12,7 +12,7 @@
 
 | パス | 内容 |
 |---|---|
-| `src/content/site.md` | 見出し、リンク、記事フィード（dev.to / Qiita） |
+| `src/content/site.md` | 見出し、リンク、記事・投稿のフィード（dev.to / Qiita / Bluesky、`limit` で件数を絞れる） |
 | `src/content/works/*.md` | 成果物（トップのタイルと Works メニュー、詳細ページ。`draft: true` で非公開） |
 | `src/pages/*.md` | 追加ページ（`layout: ../layouts/MarkdownLayout.astro`） |
 

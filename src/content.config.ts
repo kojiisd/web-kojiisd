@@ -17,12 +17,13 @@ const site = defineCollection({
         icon: z.string().optional(),
       }),
     ),
-    // トップに最新記事を並べるフィード（dev.to / Qiita）
+    // トップに最新記事・投稿を並べるフィード（dev.to / Qiita / Bluesky）
     feeds: z
       .array(
         z.object({
-          source: z.enum(["devto", "qiita"]),
+          source: z.enum(["devto", "qiita", "bluesky"]),
           user: z.string(),
+          limit: z.number().int().positive().optional(),
         }),
       )
       .default([]),
